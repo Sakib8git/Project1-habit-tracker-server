@@ -37,6 +37,21 @@ async function run() {
     });
 
     //! --------------------------------------
+    //! Home fetures data find
+    app.get("/fetured", async (req, res) => {
+      try {
+        const result = await habitsCollection
+          .find()
+          .sort({ createdAt: -1 }) // ✅ sort first
+          .limit(6) // ✅ then limit
+          .toArray(); // ✅ finally convert to array
+
+        res.send(result);
+      } catch (err) {
+        res.status(500).send({ error: "Failed to fetch featured habits" });
+      }
+    });
+    //! --------------------------------------
     //! ++++++++opore kaj++++++++++++++++++
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
