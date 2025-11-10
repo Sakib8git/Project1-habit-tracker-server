@@ -52,6 +52,66 @@ async function run() {
       }
     });
     //! --------------------------------------
+    //! My habit post
+    app.post("/habits", async (req, res) => {
+      try {
+        const data = req.body;
+
+        // Optional: add server-side timestamps if needed
+        data.createdAt = data.createdAt || new Date().toISOString();
+        data.updatedAt = new Date().toISOString();
+        data.currentStreak = data.currentStreak || 0;
+        data.completionHistory = data.completionHistory || [];
+
+        const result = await habitsCollection.insertOne(data);
+
+        res.status(201).send(result);
+      } catch (error) {
+        console.error("❌ Failed to insert habit:", error);
+        res.status(500).send({ error: "Failed to add habit" });
+      }
+    });
+    //! --------------------------------------
+    //! My habit page
+    app.get("/my-habits", async (req, res) => {
+      try {
+        const email = req.query.email;
+
+        if (!email) {
+          return res.status(400).send({ error: "Email is required" });
+        }
+
+        const result = await habitsCollection
+          .find({ "user.email": email })
+          .toArray();
+
+        res.send(result);
+      } catch (error) {
+        console.error("❌ Failed to fetch habits:", error);
+        res.status(500).send({ error: "Failed to load habits" });
+      }
+    });
+    //! --------------------------------------
+    //! habit details
+    const { ObjectId } = require("mongodb");
+
+    app.get("/habits/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).send({ error: "Invalid habit ID" });
+        }
+
+        const habit = await habitsCollection.findOne({ _id: new ObjectId(id) });
+        if (!habit) return res.status(404).send({ error: "Habit not found" });
+
+        res.send(habit);
+      } catch (error) {
+        console.error("❌ Failed to fetch habit:", error);
+        res.status(500).send({ error: "Failed to load habit" });
+      }
+    });
+    //! --------------------------------------
     //! ++++++++opore kaj++++++++++++++++++
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
