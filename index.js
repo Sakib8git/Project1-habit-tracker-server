@@ -112,6 +112,46 @@ async function run() {
       }
     });
     //! --------------------------------------
+    //! habit Mark today
+
+    app.patch("/habits/:id/complete", async (req, res) => {
+      try {
+        const id = req.params.id;
+
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).send({ error: "Invalid habit ID" });
+        }
+
+        const habit = await habitsCollection.findOne({ _id: new ObjectId(id) });
+        if (!habit) {
+          return res.status(404).send({ error: "Habit not found" });
+        }
+
+        const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+        const alreadyMarked = habit.completionHistory?.some((d) =>
+          d.startsWith(today)
+        );
+
+        if (alreadyMarked) {
+          return res.status(400).send({ error: "Already marked today" });
+        }
+
+        const updateResult = await habitsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          {
+            $push: { completionHistory: new Date().toISOString() },
+            $inc: { currentStreak: 1 },
+            $set: { updatedAt: new Date().toISOString() },
+          }
+        );
+
+        res.send({ success: true });
+      } catch (error) {
+        console.error("❌ Failed to mark habit complete:", error);
+        res.status(500).send({ error: "Failed to update habit" });
+      }
+    });
+    //! --------------------------------------
     //! ++++++++opore kaj++++++++++++++++++
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
