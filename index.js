@@ -183,6 +183,31 @@ async function run() {
     });
 
     //! --------------------------------------
+    //! habit deletr in my habit pg
+    app.delete("/habits/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).send({ error: "Invalid habit ID" });
+        }
+
+        const result = await habitsCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+
+        if (result.deletedCount === 0) {
+          return res.status(404).send({ error: "Habit not found" });
+        }
+
+        res.send({ success: true });
+      } catch (error) {
+        console.error("❌ Failed to delete habit:", error);
+        res.status(500).send({ error: "Failed to delete habit" });
+      }
+    });
+
+    //! --------------------------------------
     //! ++++++++opore kaj++++++++++++++++++
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
