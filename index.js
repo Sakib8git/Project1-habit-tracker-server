@@ -65,12 +65,116 @@ async function run() {
     // await client.connect();
     const db = client.db("habit-track-db");
     const habitsCollection = db.collection("habits");
-    //! all data find
-    app.get("/habits", async (req, res) => {
-      const result = await habitsCollection.find().toArray();
+    const feedCollection = db.collection("feedback");
+    // !all feedback
+    app.get("/feedback", async (req, res) => {
+      const result = await feedCollection.find().toArray();
 
       res.send(result);
     });
+
+    // !get recent 3 feedback
+    app.get("/feedback/recent", async (req, res) => {
+      try {
+        const result = await feedCollection
+          .find()
+          .sort({ createdAt: -1 }) // ✅ newest first
+          .limit(3) // ✅ only 3
+          .toArray();
+
+        res.status(200).send(result);
+      } catch (error) {
+        res
+          .status(500)
+          .send({ success: false, message: "Failed to fetch feedback", error });
+      }
+    });
+    // !post feedback
+    app.post("/feedback", async (req, res) => {
+      try {
+        const { name, mood, entry } = req.body;
+
+        if (!name || !entry) {
+          return res
+            .status(400)
+            .send({ success: false, message: "Name and feedback required" });
+        }
+
+        const newFeedback = {
+          name,
+          mood,
+          entry,
+          createdAt: new Date().toISOString(), // ✅ time add
+        };
+
+        const result = await feedCollection.insertOne(newFeedback);
+
+        res.status(201).send({
+          success: true,
+          message: "Feedback added successfully",
+          data: result,
+        });
+      } catch (error) {
+        res
+          .status(500)
+          .send({ success: false, message: "Failed to add feedback", error });
+      }
+    });
+
+    //! all data find
+
+    // app.get("/habits", async (req, res) => {
+    //   try {
+    //     const page = parseInt(req.query.page) || 1;
+    //     const limit = parseInt(req.query.limit) || 6;
+    //     const skip = (page - 1) * limit;
+
+    //     const total = await habitsCollection.countDocuments();
+    //     const habits = await habitsCollection.find().skip(skip).limit(limit).toArray();
+
+    //     res.send({
+    //       total,
+    //       page,
+    //       limit,
+    //       habits,
+    //     });
+    //   } catch (err) {
+    //     console.error("❌ Error fetching habits:", err);
+    //     res.status(500).send({ error: "Failed to fetch habits" });
+    //   }
+    // });
+
+    // habits route with pagination
+    app.get("/habits", async (req, res) => {
+      try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 6;
+        const skip = (page - 1) * limit;
+
+        const total = await habitsCollection.countDocuments();
+        const habits = await habitsCollection
+          .find()
+          .skip(skip)
+          .limit(limit)
+          .toArray();
+
+        res.send({
+          total,
+          page,
+          limit,
+          habits,
+        });
+      } catch (err) {
+        console.error("❌ Error fetching habits:", err);
+        res.status(500).send({ error: "Failed to fetch habits" });
+      }
+    });
+
+    // app.get("/habits", async (req, res) => {
+    //   const result = await habitsCollection.find().toArray();
+
+    //   res.send(result);
+    // });
 
     //! --------------------------------------
     //! Home fetures data find
@@ -151,7 +255,7 @@ async function run() {
       const alreadyMarked = habit.completionHistory?.some((d) =>
         d.startsWith(today)
       );
-// alreay thakle
+      // alreay thakle
       if (alreadyMarked) {
         return res.status(400).send({
           error: "Already marked today",
