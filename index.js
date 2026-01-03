@@ -176,6 +176,21 @@ async function run() {
     //   res.send(result);
     // });
 
+    //  stats habits
+    app.get("/stats", async (req, res) => {
+      try {
+        const totalHabits = await habitsCollection.countDocuments();
+        const totalFeedback = await feedCollection.countDocuments();
+        res.send({
+          totalHabits,
+          totalFeedback,
+        });
+      } catch (err) {
+        console.error("❌ Error fetching stats:", err.message);
+        res.status(500).send({ error: "Failed to fetch statistics" });
+      }
+    });
+
     //! --------------------------------------
     //! Home fetures data find
     app.get("/fetured", async (req, res) => {
